@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>r-crud-behavior</title>
+
+  <script src="../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../../bower_components/test-fixture/test-fixture-mocha.js"></script>
+  <link rel="import" href="../../bower_components/iron-form/iron-form.html">
+  <link rel="import" href="../../bower_components/paper-drawer-panel/paper-drawer-panel.html">
+  <link rel="import" href="../../bower_components/paper-item/paper-item.html">
+  <link rel="import" href="../../bower_components/paper-menu/paper-menu.html">
+  <link rel="import" href="../../bower_components/test-fixture/test-fixture.html">
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../../elements/behaviors/crud-behavior.html">
+
+</head>
+<body>
+<dom-module id="crud-test">
+  <template>
+    <paper-drawer-panel id="mainDrawerPanel">
+      <paper-menu drawer
+                  attr-for-selected="itemId"
+                  selected="{{itemId}}"
+                  selected-item="{{selectedItem}}"
+                  on-iron-activate="_listTap"
+                  id="itemList">
+        <paper-item class="layout horizontal" item-id="1" id="one">One</paper-item>
+        <paper-item class="layout horizontal" item-id="2" id="two">Two</paper-item>
+        <paper-item class="layout horizontal" item-id="3" id="three">Three</paper-item>
+      </paper-menu>
+      <div main>
+        <form is="iron-form" id="topForm" item-id="[[itemId]]">
+          <p>[[itemId]]</p>
+        </form>
+        <form is="iron-form" id="middleForm" item-id="[[itemId]]">
+          <p>[[itemId]]</p>
+        </form>
+        <form is="iron-form" id="bottomForm" item-id="[[itemId]]">
+          <p>[[itemId]]</p>
+        </form>
+      </div>
+    </paper-drawer-panel>
+    <paper-fab on-click="_newItem" id="primaryFab"></paper-fab>
+  </template>
+  <script>
+    Polymer({
+      is: 'crud-test',
+      behaviors: [ window.Behaviors.CrudBehavior ]
+    })
+  </script>
+</dom-module>
+<test-fixture id="basic">
+  <template>
+    <crud-test id="crudTest"></crud-test>
+  </template>
+</test-fixture>
+
+<script>
+  suite('r-crud-behavior tests', () => {
+    var element;
+
+    setup(() => {
+      element = fixture('basic');
+    });
+
+    test('Clicking the list item, closes the drawer panel', (done) => {
+
+      stub('paper-drawer-panel', {
+        closeDrawer: sinon.stub()
+      });
+
+      el = fixture('basic');
+
+      el.$.one.click();
+      flush(() => {
+        assert.isTrue(el.$.mainDrawerPanel.closeDrawer.called);
+        done();
+      });
+    });
+
+    test('Clicking the new item button, clears the form\'s itemId',
+        () => {
+      element.set('itemId', '1');
+      assert.equal(element.$.middleForm.itemId, '1');
+      element.$.primaryFab.click();
+      assert.equal(element.$.middleForm.itemId, null);
+    });
+
+    test('Clicking around always ends up showing the middle form', (done) => {
+      element.$.itemList.select('1');
+      element.$.itemList.select('2');
+      element.$.itemList.select('3');
+      element.$.itemList.select('2');
+      flush(() => {
+        assert.equal(element.$.middleForm.style.display, 'block');
+        assert.equal(element.$.middleForm.textContent.trim(), '2');
+        done();
+      });
+    });
+  });
+</script>
+
+</body>
+</html>

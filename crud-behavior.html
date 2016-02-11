@@ -1,0 +1,162 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/neon-animation/neon-animation-runner-behavior.html">
+<link rel="import" href="../../bower_components/neon-animation/animations/fade-out-animation.html">
+<link rel="import" href="../../bower_components/neon-animation/animations/slide-down-animation.html">
+<link rel="import" href="../../bower_components/neon-animation/animations/slide-up-animation.html">
+<link rel="import" href="../animations/r-hero-animation.html">
+
+<script>
+  window.Behaviors = window.Behaviors || [];
+
+  /** Adds animations and some standard methods for a CRUD page.
+  *   It requires that the host element have the following child elements:
+  *
+  *   #primaryFab: <paper-fab on-click="_newItem" id="primaryFab"> used as a
+  *                "new item" action.
+  *                _newItem is a method CrudBehavior implements which clears
+  *                the ID associated with a form, and adds a hero animation.
+  *
+  *   #itemList: <paper-menu selected={{itemId}} selected-item={{selectedItem}}
+  *                          attr-for-selected="attributeOfYourChoosing"
+  *                          on-iron-activate="_listTap" id="itemList">
+  *              itemId: String idhe currently selected item
+  *
+  *              selectedItem: <paper-item> element of the currently selected
+  *                  item
+  *
+  *              attributeOfYourChoosing: String representing the name of the
+  *                  attribute in your listing element that has the string ID
+  *                  of the item that is selected.
+  *
+  *              _listTap: Function CrudBehavior implements which shows and
+  *                  hides the drawer.
+  *
+  *   #topForm,
+  *   #middleForm,
+  *   #bottomForm: Identical forms with the corresponding Form ids.
+  *                These are used to create the scroll up and scroll down
+  *                animations.
+  *   #mainDrawerPanel: <paper-drawer-panel id="mainDrawerPanel"> the drawer
+  *                that lists all items from which the user can select one.
+  *
+  *
+  * Usage:
+  
+  *   Polymer({
+  *     is: 'r-element',
+  *     behaviors: [ window.Behaviors.CrudBehavior ]
+  *   });
+  *
+  **/
+
+  window.Behaviors.CrudBehaviorImpl = {
+    properties: {
+      itemId: {
+        type: String,
+        value: null,
+        notify: true,
+        observer: '_listSelect'
+      },
+
+      isEditing: {
+        type: Boolean,
+        value: false,
+        notify: true
+      },
+
+      selectedItem: {
+        type: Object,
+        notify: true
+      },
+
+      animationConfig: {
+        value() {
+          return {
+            'enterFromTop': [{
+              name: 'slide-down-animation',
+              node: this.$.middleForm
+            }, {
+              name: 'fade-out-animation',
+              node: this.$.middleForm
+            }, {
+              name: 'slide-down-animation',
+              node: this.$.topForm
+            }],
+            'enterFromBottom': [{
+              name: 'slide-up-animation',
+              node: this.$.middleForm
+            }, {
+              name: 'fade-out-animation',
+              node: this.$.middleForm
+            }, {
+              name: 'slide-up-animation',
+              node: this.$.bottomForm
+            }],
+            'newItem': [{
+              name: 'r-hero-animation',
+              fromNode: this.$.primaryFab,
+              toNode: this.$.middleForm,
+              duration: 1
+            }]
+          };
+        }
+      }
+    },
+
+    _computeListWidth(isMobile, isEditing) {
+      return isMobile || !isEditing ? '100%' : '50%';
+    },
+
+    _newItem() {
+      this.set('itemId', null);
+      this.cancelAnimation();
+      this.set('isEditing', true);
+      this.$.bottomForm.style.display = 'none';
+      this.$.middleForm.style.display = 'block';
+      this.playAnimation('newItem');
+    },
+
+    _cancelEditing() {
+      this.set('isEditing', false);
+      this.$.mainDrawerPanel.openDrawer();
+    },
+
+    _listTap() {
+      this.$.mainDrawerPanel.closeDrawer();
+      var isEditing = this.$.mainDrawerPanel.selected === 'main';
+      this.set('isEditing', isEditing);
+    },
+
+    _listSelect(nextItem, previousItem) {
+      if (!nextItem) {
+        return;
+      }
+      this.cancelAnimation();
+      if (parseInt(nextItem) < parseInt(previousItem)) {
+        this.$.topForm.style.visibility = 'visible';
+        this.$.middleForm.style.display = 'block';
+        this.$.bottomForm.style.display = 'none';
+        this.playAnimation('enterFromTop');
+      } else {
+        this.$.middleForm.style.display = 'block';
+        this.$.bottomForm.style.display = 'block';
+        this.playAnimation('enterFromBottom');
+      }
+    },
+
+    _showMiddleForm() {
+      this.$.topForm.style.visibility = 'hidden';
+      this.$.middleForm.style.display = 'block';
+      this.$.bottomForm.style.display = 'none';
+      this.$.primaryFab.style.visibility = '';
+    },
+
+    listeners: {'neon-animation-finish': '_showMiddleForm'}
+  };
+
+  window.Behaviors.CrudBehavior = [
+    Polymer.NeonAnimationRunnerBehavior,
+    window.Behaviors.CrudBehaviorImpl
+  ];
+
+</script>
